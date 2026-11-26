@@ -25,9 +25,9 @@ deployments mount them at runtime.
 ## Building
 
 ```bash
-docker build -f rucio/Dockerfile --build-arg RUCIO_COMPONENT=server  -t rucio-server  .
-docker build -f rucio/Dockerfile --build-arg RUCIO_COMPONENT=daemons -t rucio-daemons .
-docker build -f fts/Dockerfile -t fts .
+docker build rucio --build-arg RUCIO_COMPONENT=server  -t rucio-server
+docker build rucio --build-arg RUCIO_COMPONENT=daemons -t rucio-daemons
+docker build fts -t fts
 ```
 
 Versions (Rucio release, policy package and its SHA-256) are build args with
@@ -44,8 +44,8 @@ provenance attestation and two tags:
 | Full commit SHA | `rucio-server:<sha>` | What consumers pin; never moves |
 | Upstream version + short SHA | `rucio-server:41.2.1-dep.<short-sha>` | Readable; can't be mistaken for an upstream release |
 
-There is no `latest` and no plain upstream version tag. The upstream base is
-also recorded in the OCI labels (`org.opencontainers.image.base.name`).
+There is no `latest` and no plain upstream version tag. The OCI labels record
+the source repository and commit.
 
 Verify (needs gh auth login or GH_TOKEN):
 
