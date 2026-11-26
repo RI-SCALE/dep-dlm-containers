@@ -7,7 +7,7 @@ FROM almalinux:9 AS builder
 # DAVIX_COMMIT: upstream, SigV4 header signing (cern-fts/davix#150)
 # GFAL2_COMMIT: fork, SIGV4_HEADER_MODE (cern-fts/gfal2#28)
 # FTS3_COMMIT: fork, 3.14.x-release (v3.14.0-65) + token/S3 fixes
-ARG FTS_VERSION=3.14.0
+ARG FTS_VERSION=3.14.4
 ARG DAVIX_COMMIT=3198e7fee2ccbd60ba36d8408eb112f8445e99b8
 ARG GFAL2_COMMIT=bb4f21123a1353f7fc66d45785c9b6f699d1efd8
 ARG FTS3_COMMIT=9d05b26d3d7c68fc0a0f1c781b91b4683562b840
