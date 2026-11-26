@@ -1,7 +1,7 @@
 # FTS3 server and REST with DEP DLM's davix/gfal2/FTS3 changes.
 # fts-rest-flask source patches are not baked in: deployments mount them at
 # runtime over /tmp/fts-rest-flask/src (made against v${FTS_VERSION}).
-FROM almalinux:9 AS builder
+FROM almalinux:10 AS builder
 
 # FTS_VERSION: fts-rest-flask tag (and the image's readable tag)
 # DAVIX_COMMIT: upstream, SigV4 header signing (cern-fts/davix#150)
@@ -59,7 +59,7 @@ RUN git clone https://gitlab.cern.ch/fts/fts-rest-flask.git /tmp/fts-rest-flask 
     mkdir -p /usr/libexec/fts3rest && \
     cp src/fts3rest/fts3rest.wsgi /usr/libexec/fts3rest/fts3rest.wsgi
 
-FROM almalinux:9 AS runtime
+FROM almalinux:10 AS runtime
 
 RUN dnf install -y epel-release && \
     /usr/bin/crb enable && \
