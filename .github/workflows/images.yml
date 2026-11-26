@@ -98,7 +98,7 @@ jobs:
         env:
           VERSION_ARG: ${{ matrix.image.version_arg }}
           DIR: ${{ matrix.image.dir }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: digests-${{ matrix.image.name }}-*
           merge-multiple: true
