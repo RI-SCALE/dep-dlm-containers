@@ -1,21 +1,26 @@
 name: images
 
-# Pull requests lint, build every image without pushing and scan each for
-# fixable HIGH/CRITICAL vulnerabilities and secrets; main publishes them,
-# tagged with the full commit SHA (what consumers pin) and
-# <upstream>-dep.<short sha> (readable), each with a provenance attestation.
+# Pull requests and main lint, build every image without pushing (main
+# warms the build cache) and pull requests scan them. Releases call this
+# workflow with publish: true: images are pushed, tagged with the full
+# commit SHA (what consumers pin) and <upstream>-dep.X.Y.Z, each with
+# build provenance and an SPDX SBOM attestation.
 on:
   pull_request:
   push:
     branches: [main]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 env:
   PREFIX: ghcr.io/ri-scale/dep-dlm-containers
-  PUSH: ${{ github.event_name != 'pull_request' }}
+  PUSH: ${{ inputs.publish == true }}
 
 jobs:
   check:
@@ -30,7 +35,7 @@ jobs:
       - run: make check
 
   scan:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || inputs.publish
     name: scan ${{ matrix.image.name }}
     strategy:
       fail-fast: false
@@ -43,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      # amd64 only, from the build job's cache: FTS does not compile again.
+      # amd64 only, from the build cache: FTS does not compile again.
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.image.dir }}
@@ -113,13 +118,13 @@ jobs:
           retention-days: 1
 
   merge:
-    if: github.event_name != 'pull_request'
-    needs: [check, build]
+    if: inputs.publish
+    needs: [check, scan, build]
     name: manifest ${{ matrix.image.name }}
     strategy:
       fail-fast: false
       matrix:
-        # version_arg: the Dockerfile ARG holding the upstream version (readable tag)
+        # version_arg: the Dockerfile ARG holding the upstream version
         image:
           - { name: rucio-server,  dir: rucio, version_arg: RUCIO_VERSION }
           - { name: rucio-daemons, dir: rucio, version_arg: RUCIO_VERSION }
@@ -157,7 +162,7 @@ jobs:
           images: ${{ env.PREFIX }}/${{ matrix.image.name }}
           tags: |
             type=sha,prefix=,format=long
-            type=sha,prefix=${{ steps.upstream.outputs.version }}-dep.,format=short
+            type=semver,pattern={{version}},prefix=${{ steps.upstream.outputs.version }}-dep.
       - id: manifest
         working-directory: /tmp/digests
         run: |

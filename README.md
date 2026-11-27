@@ -24,7 +24,10 @@ baked in; the deployments mount them at runtime.
 
 ## Building
 
+Needs Docker, Make and pre-commit; the devcontainer has all three.
+
 ```bash
+make hooks                      # once: git pre-commit hook
 make check                      # hadolint, shellcheck, YAML (pre-commit)
 make build scan IMAGE=fts       # build locally and scan with Trivy
 make help                       # all targets
@@ -39,20 +42,24 @@ docker build fts -t fts
 ```
 
 Versions (Rucio release, policy package and its SHA-256, FTS sources) are
-build args with pinned defaults in the Dockerfiles. 
-
-Pull requests lint, build every image without pushing and scan each for
-fixable HIGH/CRITICAL vulnerabilities and secrets.
+build args with pinned defaults in the Dockerfiles.
 
 ## Releasing
 
-Every merge to `main` publishes all images (`images.yml`), each with build
-provenance and SPDX SBOM attestations and two tags:
+Pull requests and `main` lint and build every image without pushing; pull
+requests also scan each for secrets (fail) and fixable HIGH/CRITICAL
+vulnerabilities (reported). A `vX.Y.Z` tag builds, scans and publishes all
+images (`release.yml` → `images.yml`), each with build provenance and SPDX
+SBOM attestations, and creates the GitHub Release:
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z
+```
 
 | Tag | Example | Use |
 | --- | --- | --- |
 | Full commit SHA | `rucio-server:<sha>` | What consumers pin; never moves |
-| Upstream version + short SHA | `rucio-server:41.2.1-dep.<short-sha>` | Readable; can't be mistaken for an upstream release |
+| Release | `rucio-server:41.2.1-dep.0.1.0` | Readable; can't be mistaken for an upstream release |
 
 There is no `latest` and no plain upstream version tag. The OCI labels record
 the source repository and commit.
@@ -69,9 +76,10 @@ gh attestation verify oci://ghcr.io/ri-scale/dep-dlm-containers/fts:<sha> --repo
 
 ## Using a new image
 
-1. Merge the change here; note the commit SHA.
+1. Release here (`vX.Y.Z`); note the commit SHA.
 2. Bump the tag in dep-dlm-testbed and run its end-to-end suite.
 3. Promote to dep-dlm-deployment with the validated testbed commit.
 
+A release that fails in the testbed is replaced by the next patch version.
 Forked components are temporary: each change references its upstream pull
 request (e.g. cern-fts/gfal2#28) and moves back to upstream once released.
