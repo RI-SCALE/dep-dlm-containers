@@ -11,6 +11,7 @@ ARG FTS_VERSION=3.14.4
 ARG DAVIX_COMMIT=3198e7fee2ccbd60ba36d8408eb112f8445e99b8
 ARG GFAL2_COMMIT=bb4f21123a1353f7fc66d45785c9b6f699d1efd8
 ARG FTS3_COMMIT=9d05b26d3d7c68fc0a0f1c781b91b4683562b840
+
 RUN dnf install -y epel-release && \
     /usr/bin/crb enable && \
     dnf install -y \
@@ -28,36 +29,40 @@ RUN dnf install -y epel-release && \
     && dnf clean all
 
 RUN git clone https://github.com/cern-fts/davix.git /tmp/davix && \
-    cd /tmp/davix && git checkout ${DAVIX_COMMIT} && \
-    mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_THIRD_PARTY_COPY=ON && \
-    make -j$(nproc) && make install && \
+    git -C /tmp/davix checkout "${DAVIX_COMMIT}" && \
+    cmake -S /tmp/davix -B /tmp/davix/build -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_THIRD_PARTY_COPY=ON && \
+    cmake --build /tmp/davix/build -j"$(nproc)" && \
+    cmake --install /tmp/davix/build && \
     rm -rf /tmp/davix
 
 RUN git clone https://github.com/mgajek-cern/gfal2.git /tmp/gfal2 && \
-    cd /tmp/gfal2 && git checkout ${GFAL2_COMMIT} && \
-    mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
-    -DPLUGIN_DCAP=OFF -DPLUGIN_GRIDFTP=OFF -DPLUGIN_SFTP=OFF -DPLUGIN_SRM=OFF \
-    -DPLUGIN_XROOTD=ON -DPLUGIN_HTTP=ON -DPLUGIN_FILE=ON -DSKIP_TESTS=TRUE && \
-    make -j$(nproc) && make install && \
+    git -C /tmp/gfal2 checkout "${GFAL2_COMMIT}" && \
+    cmake -S /tmp/gfal2 -B /tmp/gfal2/build -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DPLUGIN_DCAP=OFF -DPLUGIN_GRIDFTP=OFF -DPLUGIN_SFTP=OFF -DPLUGIN_SRM=OFF \
+      -DPLUGIN_XROOTD=ON -DPLUGIN_HTTP=ON -DPLUGIN_FILE=ON -DSKIP_TESTS=TRUE && \
+    cmake --build /tmp/gfal2/build -j"$(nproc)" && \
+    cmake --install /tmp/gfal2/build && \
     rm -rf /tmp/gfal2
 
 RUN git clone https://gitlab.cern.ch/nramosga/fts3.git /tmp/fts3 && \
-    cd /tmp/fts3 && git checkout ${FTS3_COMMIT} && \
-    mkdir build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DALLBUILD=ON && \
-    make -j$(nproc) && make install && \
+    git -C /tmp/fts3 checkout "${FTS3_COMMIT}" && \
+    cmake -S /tmp/fts3 -B /tmp/fts3/build -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr -DALLBUILD=ON && \
+    cmake --build /tmp/fts3/build -j"$(nproc)" && \
+    cmake --install /tmp/fts3/build && \
     rm -rf /tmp/fts3
 
+# Python versions known to work with FTS_VERSION: pip freeze of a tested image.
+COPY constraints.txt /tmp/constraints.txt
 RUN git clone https://gitlab.cern.ch/fts/fts-rest-flask.git /tmp/fts-rest-flask && \
-    cd /tmp/fts-rest-flask && git checkout v${FTS_VERSION} && \
-    pip3 install setuptools_scm && \
-    pip3 install -r requirements.in && \
-    pip3 install cryptography && \
-    pip3 install --no-deps -e . && \
+    git -C /tmp/fts-rest-flask checkout "v${FTS_VERSION}" && \
+    pip3 install --no-cache-dir -c /tmp/constraints.txt \
+      setuptools_scm cryptography -r /tmp/fts-rest-flask/requirements.in && \
+    pip3 install --no-cache-dir --no-deps -e /tmp/fts-rest-flask && \
     mkdir -p /usr/libexec/fts3rest && \
-    cp src/fts3rest/fts3rest.wsgi /usr/libexec/fts3rest/fts3rest.wsgi
+    cp /tmp/fts-rest-flask/src/fts3rest/fts3rest.wsgi /usr/libexec/fts3rest/fts3rest.wsgi
 
 FROM almalinux:9 AS runtime
 
@@ -79,7 +84,8 @@ RUN dnf install -y epel-release && \
     gfal2-util-scripts python3-gfal2 gfal2-plugin-http \
     && dnf clean all
 
-RUN pip3 install "sqlalchemy<2.0" pymysql cryptography
+COPY constraints.txt /tmp/constraints.txt
+RUN pip3 install --no-cache-dir -c /tmp/constraints.txt "sqlalchemy<2.0" pymysql cryptography
 
 COPY --from=builder /usr/sbin/fts_* /usr/sbin/
 COPY --from=builder /usr/lib64/libgfal_transfer* /usr/lib64/
@@ -106,7 +112,7 @@ RUN useradd -r -m -u 9003 fts3 && \
     chmod +x /usr/share/fts/fts-database-upgrade.py
 
 # Disable default httpd configs that conflict
-RUN for f in ssl autoindex userdir welcome zgridsite; do : > /etc/httpd/conf.d/$f.conf; done && \
+RUN for f in ssl autoindex userdir welcome zgridsite; do : > "/etc/httpd/conf.d/$f.conf"; done && \
     echo "ServerName fts" >> /etc/httpd/conf/httpd.conf
 
 COPY files/fts3rest.conf /etc/httpd/conf.d/fts3rest.conf
