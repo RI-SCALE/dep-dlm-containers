@@ -39,10 +39,7 @@ docker build fts -t fts
 ```
 
 Versions (Rucio release, policy package and its SHA-256, FTS sources) are
-build args with pinned defaults in the Dockerfiles. FTS's Python
-dependencies are pinned in `fts/constraints.txt`; when bumping
-`FTS_VERSION`, regenerate it with `pip3 freeze --exclude-editable` from a
-tested image.
+build args with pinned defaults in the Dockerfiles. 
 
 Pull requests lint, build every image without pushing and scan each for
 fixable HIGH/CRITICAL vulnerabilities and secrets.

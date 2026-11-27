@@ -54,12 +54,11 @@ RUN git clone https://gitlab.cern.ch/nramosga/fts3.git /tmp/fts3 && \
     cmake --install /tmp/fts3/build && \
     rm -rf /tmp/fts3
 
-# Python versions known to work with FTS_VERSION: pip freeze of a tested image.
-COPY constraints.txt /tmp/constraints.txt
 RUN git clone https://gitlab.cern.ch/fts/fts-rest-flask.git /tmp/fts-rest-flask && \
     git -C /tmp/fts-rest-flask checkout "v${FTS_VERSION}" && \
-    pip3 install --no-cache-dir -c /tmp/constraints.txt \
-      setuptools_scm cryptography -r /tmp/fts-rest-flask/requirements.in && \
+    pip3 install --no-cache-dir setuptools_scm && \
+    pip3 install --no-cache-dir -r /tmp/fts-rest-flask/requirements.in && \
+    pip3 install --no-cache-dir cryptography && \
     pip3 install --no-cache-dir --no-deps -e /tmp/fts-rest-flask && \
     mkdir -p /usr/libexec/fts3rest && \
     cp /tmp/fts-rest-flask/src/fts3rest/fts3rest.wsgi /usr/libexec/fts3rest/fts3rest.wsgi
@@ -84,8 +83,7 @@ RUN dnf install -y epel-release && \
     gfal2-util-scripts python3-gfal2 gfal2-plugin-http \
     && dnf clean all
 
-COPY constraints.txt /tmp/constraints.txt
-RUN pip3 install --no-cache-dir -c /tmp/constraints.txt "sqlalchemy<2.0" pymysql cryptography
+RUN pip3 install --no-cache-dir "sqlalchemy<2.0" pymysql cryptography
 
 COPY --from=builder /usr/sbin/fts_* /usr/sbin/
 COPY --from=builder /usr/lib64/libgfal_transfer* /usr/lib64/

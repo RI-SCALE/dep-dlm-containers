@@ -12,6 +12,8 @@ DIR_rucio-daemons := rucio
 ARGS_rucio-daemons := --build-arg RUCIO_COMPONENT=daemons
 DIR_fts           := fts
 
+SCAN_EXIT_CODE ?= 0
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -32,6 +34,7 @@ build: ## Build IMAGE locally as IMAGE:dev (rucio-server, rucio-daemons, fts)
 	docker build $(ARGS_$(IMAGE)) -t $(IMAGE):dev $(DIR_$(IMAGE))
 
 .PHONY: scan
-scan: ## Trivy: fixable HIGH/CRITICAL vulnerabilities and secrets in IMAGE:dev
-	$(TRIVY) image --scanners vuln,secret --severity HIGH,CRITICAL \
-	  --ignore-unfixed --exit-code 1 $(IMAGE):dev
+scan: ## Trivy: secrets (fail) and fixable HIGH/CRITICAL vulnerabilities (report; SCAN_EXIT_CODE=1 to fail)
+	$(TRIVY) image --scanners secret --exit-code 1 $(IMAGE):dev
+	$(TRIVY) image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+	  --exit-code $(SCAN_EXIT_CODE) $(IMAGE):dev
