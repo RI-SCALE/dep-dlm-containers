@@ -1,8 +1,8 @@
 {
   "name": "dep-dlm-containers",
-  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+    "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "postCreateCommand": "pip install --user pre-commit && make hooks",
